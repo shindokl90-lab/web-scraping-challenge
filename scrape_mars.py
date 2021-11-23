@@ -7,11 +7,13 @@ from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
 import json
 
+#Set up splinter for scraping
 def scrape_info(): 
     executable_path = {'executable_path': ChromeDriverManager().install()}
-    browser = Browser('chrome', **executable_path, headless=False)
+    browser = Browser('chrome', **executable_path, headless=True)
    
-    #Mars News
+#MARS NEWS SCRAPE
+mars_info = {}
 
     url = "https://redplanetscience.com/"
     browser.visit(url)
@@ -24,12 +26,19 @@ def scrape_info():
     news_p = soup.find('div', class_='article_teaser_body').text
     print(news_p)
 
-    mars_dict = {'1':{'news_title': news_title},
-                '2':{'news_p': news_p}}
-
-    browser.quit()
+    mars_info["news_p"]=news_p
+    mars_info["news_title"]=news_title
+    mars_info["featured_image"]= mars_img(browser)
+    mars_info["mars_facts"]= mars_facts()
+    mars_info["mars_hemispheres"]= mars_hemispheres)browser
     
-    #Mars Images
+    browser.quit()
+
+return mars_info
+    
+#MARS IMAGES SCRAPE
+
+def mars_image(browser):
 
     executable_path = {'executable_path': ChromeDriverManager().install()}
     browser = Browser('chrome', **executable_path, headless=False)
@@ -40,21 +49,19 @@ def scrape_info():
     html_img = browser.html
     soup = BeautifulSoup(html_img, 'html.parser')
 
-    for item in soup.find_all('img', class_="headerimage fade-in"):
-        print(item['src'])   
-    
-    mars_pic=item['src']
+    image = soup.find('div', class_'floating_text_area')
+    link = image.find("a")['href']
 
     main_url = 'https://spaceimages-mars.com/'
 
-    featured_image_url = main_url + mars_pic       
-    print(featured_image_url)
-    mars_dict['3']={}
-    mars_dict['3']['featured_image_url'] = featured_image_url
+    featured_image_url = main_url + link       
+    
+    return main_url
+
     browser.quit()
 
-    #Mars Facts
-    
+#MARS FACTS SCRAPE
+def mars_facts():    
     executable_path = {'executable_path': ChromeDriverManager().install()}
     browser = Browser('chrome', **executable_path, headless=False)
 
@@ -62,76 +69,37 @@ def scrape_info():
     browser.visit(facts_url)
     table = pd.read_html(facts_url)
     facts_df=table[0]
-    facts_df.columns = ["Description","Mars","Earth"]
-    facts_df=facts_df.set_index(["Description"])
+    facts_df.columns = ['Description','Mars','Earth']
+    facts_df=facts_df.set_index('Description', inplace=True)
     facts_df=facts_df.drop(["Mars - Earth Comparison"])   
     facts_html = facts_df.to_html()
-    print(facts_html)
-    mars_dict['4']={}
-    mars_dict['4']['table'] = facts_html
+    facts_html.replace('\n', '')
     browser.quit()
 
-   #Hemispheres
-  
-    mars_hemispheres_urls = ("https://marshemispheres.com/")
-    cerberus_url = ("https://marshemispheres.com/cerberus.html")
-    response = requests.get(cerberus_url)
-    c_soup = BeautifulSoup(response.text, 'html.parser')
-    cerberus_soup = c_soup.find_all('div', class_="wide-image-wrapper")
-    for img in cerberus_soup:
-        pic = img.find('li')
-        c_img = pic.find('a')['href']
-    cerberus_url=mars_hemispheres_urls + c_img
+    return facts_html
 
-    schiaparelli_url = ("https://marshemispheres.com/schiaparelli.html")
-    response = requests.get(schiaparelli_url)
-    s_soup = BeautifulSoup(response.text, 'html.parser')
+#MARS HEMISPHERES SCRAPE
+def mars_hemispheres(browser):  
+    mars_hemispheres_url = ("https://marshemispheres.com/")
+    browser.visit(hemisphere_image_url)
+    html = browser.html
+    soup = BeautifulSoup(html, 'html.parser')
+    items = soup.find_all('div', class_='item')
+    hemisphere_image_urls = []
+    
+    for item in items:
+            title = item.find('h3').text
+            hemisphere_image_url = 'https://marshemispheres.com/' + item.find('a', class_='itemLink product-item')['href']
 
-    schiaparelli_soup = s_soup.find_all('div', class_="wide-image-wrapper")
+            browser.visit(hemispheres_url)
+            html = browser.html
+            soup = BeautifulSoup(html, 'html.parser')
+            hemisphere_image_url = 'https://marshemispheres.com/' + soup.find('img', class_='wide-image')['src']
+            hemisphere_image_urls.append({'title': title, 'img_url': hemisphere_image_url})
+        return hemisphere_image_urls
 
-    for img in schiaparelli_soup:
-        pic = img.find('li')
-        s_img = pic.find('a')['href']
-    schiaparelli_url=mars_hemispheres_urls + s_img
+if __name__ == "__main__":
+    print(init_browser())
 
-    syrtis_url = ("https://marshemispheres.com/syrtis.html")
-    response = requests.get(syrtis_url)
-    syrtis_soup = BeautifulSoup(response.text, 'html.parser')
 
-    syrtis_soup = syrtis_soup.find_all('div', class_="wide-image-wrapper")
 
-    for img in syrtis_soup:
-        pic = img.find('li')
-        syrtis_img = pic.find('a')['href']
-    syrtis_url=mars_hemispheres_urls + syrtis_img
-
-    valles_url = ("https://marshemispheres.com/valles.html")
-    response = requests.get(valles_url)
-    valles_soup = BeautifulSoup(response.text, 'html.parser')
-
-    valles_soup = valles_soup.find_all('div', class_="wide-image-wrapper")
-
-    for img in valles_soup:
-        pic = img.find('li')
-        valles_img = pic.find('a')['href']
-    valles_url=mars_hemispheres_urls + valles_img
-
-    hemisphere_image_urls = [
-        {"title": "Valles Marineris Hemisphere", "img_url": "valles_url"},
-        {"title": "Cerberus Hemisphere", "img_url": "cerberus_url"},
-        {"title": "Schiaparelli Hemisphere", "img_url": "schiparelli_url"},
-        {"title": "Syrtis Major Hemisphere", "img_url": "syrtis_url"}
-    ]
-    mars_dict['5']={}
-    mars_dict['5']['1'] = {}
-    mars_dict['5']['2'] = {}
-    mars_dict['5']['3'] = {}
-    mars_dict['5']['4'] = {}
-    mars_dict['5']['1'] = valles_url
-    mars_dict['5']['2'] = cerberus_url
-    mars_dict['5']['3'] = schiaparelli_url
-    mars_dict['5']['4'] = syrtis_url
-
-    browser.quit()
- 
-    return mars_dict
